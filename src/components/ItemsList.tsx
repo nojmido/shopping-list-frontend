@@ -1,31 +1,82 @@
-//userOfList
+import React, { useState, useEffect } from 'react';
+import ItemOfList from './ItemOfList';
+import items from './mockData';  // Importujeme mock data
 
-import Col from "react-bootstrap/Col";
+import { ListGroup, Form, Button, InputGroup } from 'react-bootstrap';
 
-import ExamplePopover from "@/components/ExamplePopover";
-import ExampleOffcanvas from "./ExampleOffcanvas";
+interface ItemsListProps {
+  items: { id: number, name: string, purchased: boolean }[];
+}
 
-const ItemsList: React.FC = () => {
+const ItemsList: React.FC<ItemsListProps> = (props) => {
+
+  const [purchasedItems, setPurchasedItems] = useState<{ [key: number]: boolean }>({});
+  const [itemList, setItemList] = useState(items);  // Přidání stavu pro sledování seznamu položek
+  const [newItem, setNewItem] = useState("");  // Pro ukládání textu nové položky
+  const [filterPurchased, setFilterPurchased] = useState(false); // Pro ukládání stavu 'Filter purchased items'
+
+  useEffect(() => {
+    const loadedItems = JSON.parse(sessionStorage.getItem('purchasedItems') || '{}');
+    setPurchasedItems(loadedItems);
+  }, []);
+
+  const handleDelete = (id: number) => {
+    // Filtruje itemList, aby odstranil položku s daným id
+    setItemList(currentItems => currentItems.filter(item => item.id !== id));
+  }
+
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault();  // Zabránění obnově stránky
+
+    const newItemObject = {
+      id: new Date().getTime(),  // Přiřazení nového unikátního ID
+      name: newItem,
+      state: ""
+    };
+    setItemList([...itemList, newItemObject]);
+    setNewItem("");  // Resetování inputu
+  };
+
   return (
-    <>
-      <Col lg={8} classNameName="px-0">
-      <ul className="list-group">
-  <li className="list-group-item">
-    <input className="form-check-input me-1" type="checkbox" value="" id="firstCheckbox"/>
-    <label className="form-check-label" htmlFor="firstCheckbox">First checkbox</label>
-  </li>
-  <li className="list-group-item">
-    <input className="form-check-input me-1" type="checkbox" value="" id="secondCheckbox"/>
-    <label className="form-check-label" htmlFor="secondCheckbox">Second checkbox</label>
-  </li>
-  <li className="list-group-item">
-    <input className="form-check-input me-1" type="checkbox" value="" id="thirdCheckbox"/>
-    <label className="form-check-label" htmlFor="thirdCheckbox">Third checkbox</label>
-  </li>
-</ul>
-      </Col>
-    </>
+    <ListGroup variant="flush">
+      <ListGroup.Item>
+        <Form>
+          <Form.Check
+            type="switch"
+            id="custom-switch"
+            label="Filter purchased items"
+            checked={filterPurchased}
+            onChange={() => setFilterPurchased(!filterPurchased)}
+          />
+        </Form>
+      </ListGroup.Item>
+      {itemList.filter(item =>
+        filterPurchased ?
+          item.state !== 'purchased' :
+          (item.state === 'purchased' || item.state !== 'purchased')).map((item) => (
+            <ItemOfList
+              key={item.id}
+              id={item.id}
+              name={item.name}
+              initialPurchased={!!purchasedItems[item.id]}
+              onDelete={handleDelete}
+            />
+          ))}
+
+      <ListGroup.Item>
+        <Form onSubmit={handleAddItem}>
+          <InputGroup>
+            <Form.Control
+              type="text"
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              placeholder="Přidat novou položku"
+            />
+          </InputGroup>
+        </Form>
+      </ListGroup.Item>
+    </ListGroup>
   );
-};
+}
 
 export default ItemsList;
